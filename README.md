@@ -10,7 +10,7 @@ Rex already restores sessions, layouts and directories. It doesn't restore progr
 ## Install
 
 ```sh
-git clone <this repo> ~/github.com/iksaku/rex-restore
+git clone https://github.com/iksaku/rex-restore.git ~/github.com/iksaku/rex-restore
 ~/github.com/iksaku/rex-restore/install.sh
 ```
 
