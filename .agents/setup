@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+started=$SECONDS
+
+echo 'Checking Lua 5.1 and ShellCheck packages...'
+missing=()
+for package in lua5.1 shellcheck; do
+  if ! dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -qx 'install ok installed'; then
+    missing+=("$package")
+  fi
+done
+if ((${#missing[@]})); then
+  sudo -n apt-get update
+  sudo -n env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${missing[@]}"
+fi
+printf 'System tools ready (%ss).\n' "$((SECONDS - started))"
+
+started=$SECONDS
+if ! command -v rex >/dev/null 2>&1; then
+  # The official tarball installer verifies the release checksum and installs
+  # only the CLI/server binary, without services, accounts, or configuration.
+  echo 'Installing Rex with the official binary-only installer...'
+  curl -fsSL --retry 3 --connect-timeout 10 --max-time 60 \
+    https://pkgs.superlogical.com/rex/install.sh | sh -s -- --tarball
+fi
+rex version
+printf 'Rex ready (%ss).\n' "$((SECONDS - started))"
+
+started=$SECONDS
+echo 'Checking Lua and shell syntax without executing the plugin...'
+luac5.1 -p init.lua watch.lua
+sh -n install.sh
+printf 'Syntax checks passed (%ss).\n' "$((SECONDS - started))"
