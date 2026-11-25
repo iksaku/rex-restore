@@ -62,6 +62,18 @@ The log is at `~/.local/state/rex-restore/watch.log`. Snapshots contain full pro
 
 ## Tests
 
+The draft GitHub Actions workflow in `.github/workflows/tests.yml` runs on pull
+requests and pushes to `main`. It runs the 23 watcher contract tests against a
+simulated Rex API/filesystem/clock, checks all Lua files for Lua 5.1 syntax,
+checks the installer and Bash/Zsh/Fish integrations for shell syntax, and runs
+ShellCheck on the installer and Bash integration. It also compiles the two
+Python live-test scripts for syntax only; it does **not** run them. The job uses
+Ubuntu 24.04 with `lua5.1`, `shellcheck`, `zsh` and `fish` installed via apt, plus
+the runner's Bash and Python 3. It does not install Rex or omp, execute the
+installer, or run `rex config check` (which can start a watcher).
+
+The existing local fast checks require Lua 5.1 and ShellCheck:
+
 ```sh
 lua5.1 tests/watch_test.lua
 luac5.1 -p init.lua watch.lua executed.lua process_identity.lua
@@ -69,6 +81,15 @@ sh -n install.sh
 bash -n shell-integration.bash
 shellcheck install.sh shell-integration.bash
 ```
+
+CI additionally runs `zsh -n shell-integration.zsh`,
+`fish --no-execute shell-integration.fish`, Lua syntax checking on the contract
+test itself, and `python3 -m py_compile tests/restart_test.py tests/placement_test.py`.
+These static checks do not validate live shell-hook behavior or real Rex
+delivery, process identity, undo, or restart behavior. The live suites below
+are intentionally excluded from CI pending disposable-server provisioning and
+a matching Rex version on PATH; their Python code uses only the standard
+library (Python 3.9+).
 
 `tests/restart_test.py` runs the real Rex matrix: startup capture across two sessions/four panes/multiple tabs, three input-only restores, cleared input retention, execution acknowledgements (including a builtin and a short job), scoped removal, and optionally two real omp resumes with renewed tracking. **Use only an isolated disposable server**: the supplied command restarts it three times (five with omp). Its shells must be Bash for the execution-hook portion. It creates and removes its own sessions and temporary watcher state. For the omp cases, put `omp` on the restored shells' PATH and set the test server's `PI_CODING_AGENT_DIR` to an isolated directory:
 

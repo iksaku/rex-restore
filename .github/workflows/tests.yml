@@ -1,0 +1,45 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Contract tests and static checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install check dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends lua5.1 shellcheck zsh fish
+
+      - name: Watcher contract tests (simulated Rex)
+        run: lua5.1 tests/watch_test.lua
+
+      - name: Lua syntax
+        run: luac5.1 -p init.lua watch.lua executed.lua process_identity.lua tests/watch_test.lua
+
+      - name: Shell syntax and lint
+        run: |
+          sh -n install.sh
+          bash -n shell-integration.bash
+          zsh -n shell-integration.zsh
+          fish --no-execute shell-integration.fish
+          shellcheck install.sh shell-integration.bash
+
+      # Compile only: these scripts require an explicitly disposable live server.
+      - name: Live-test Python syntax (not integration tests)
+        env:
+          PYTHONPYCACHEPREFIX: ${{ runner.temp }}/pycache
+        run: python3 -m py_compile tests/restart_test.py tests/placement_test.py
+
+      # Live restart/placement and optional omp tests are intentionally excluded.
+      # See README.md#tests for isolated-server, restart and omp prerequisites.
